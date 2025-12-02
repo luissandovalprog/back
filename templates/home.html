@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Inicio - Biblioteca{% endblock %}
+
+{% block content %}
+  <div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <div class="container-fluid py-5">
+      <h1 class="display-5 fw-bold">Bienvenido al Catálogo de la Biblioteca</h1>
+      <p class="col-md-8 fs-4">
+        Explora nuestra colección de autores y libros.
+      </p>
+      {% if user.is_authenticated %}
+        <p>Utiliza la barra de navegación para ver los listados.</p>
+      {% else %}
+        <p>Por favor, <a href="{% url 'login' %}">inicia sesión</a> o <a href="{% url 'registro' %}">regístrate</a> para continuar.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

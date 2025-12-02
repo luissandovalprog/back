@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ object.titulo }}{% endblock %}
+
+{% block content %}
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h1 class="card-title">{{ object.titulo }}</h1>
+      <h5 class="card-subtitle mb-2 text-muted">Año de publicación: {{ object.ano_publicacion }}</h5>
+      
+      <hr>
+
+      <h5>Autor:</h5>
+      <p><a href="{% url 'autor_detail' object.autor.pk %}">{{ object.autor.nombre }} {{ object.autor.apellido }}</a></p>
+
+    </div>
+    <div class="card-footer bg-white">
+      <a href="{% url 'libro_list' %}" class="btn btn-secondary">Volver a la lista</a>
+      
+      {% if user.rol == 'Bibliotecario' %}
+        <a href="{% url 'libro_update' object.pk %}" class="btn btn-warning">Editar</a>
+        <a href="{% url 'libro_delete' object.pk %}" class="btn btn-danger">Eliminar</a>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

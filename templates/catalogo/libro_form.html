@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Editar Libro{% else %}Crear Libro{% endif %}{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="card-title">{% if object %}Editar Libro{% else %}Crear Nuevo Libro{% endif %}</h2>
+          
+          <form method="post">
+            {% csrf_token %}
+            
+            {{ form.as_p }}
+            
+            <button type="submit" class="btn btn-success">Guardar</button>
+            <a href="{% url 'libro_list' %}" class="btn btn-secondary">Cancelar</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
