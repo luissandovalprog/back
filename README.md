@@ -215,3 +215,8 @@ Equipo:
     Relaciones:
 
         Muchos-a-Uno (N:1) con Autor: Un Libro pertenece exactamente a un Autor.
+
+
+Prueba de API
+
+http://127.0.0.1:8000/api-test/

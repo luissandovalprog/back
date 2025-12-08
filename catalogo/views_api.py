@@ -1,10 +1,11 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Autor, Libro
 from .serializers import AutorSerializer, LibroSerializer
+import traceback
 
 
 # ========================================
@@ -29,17 +30,23 @@ def lista_autores(request):
     GET: Lista todos los autores
     POST: Crea un nuevo autor
     """
-    if request.method == 'GET':
-        autores = Autor.objects.all()
-        serializer = AutorSerializer(autores, many=True)
-        return Response(serializer.data)
-    
-    if request.method == 'POST':
-        serializer = AutorSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        if request.method == 'GET':
+            autores = Autor.objects.all()
+            serializer = AutorSerializer(autores, many=True)
+            return Response(serializer.data)
+        
+        if request.method == 'POST':
+            serializer = AutorSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response(
+            {'error': str(e), 'traceback': traceback.format_exc()},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET', 'PUT', 'DELETE'])

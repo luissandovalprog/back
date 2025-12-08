@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de API - Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .response-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { color: #198754; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Prueba de API RESTful - Sistema de Biblioteca</h1>
+                <p class="lead">Esta página permite probar todos los endpoints de la API con autenticación JWT.</p>
+            </div>
+        </div>
+
+        <!-- Sección de Autenticación -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">1. Autenticación JWT</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Usuario:</label>
+                        <input type="text" id="username" class="form-control mb-2" placeholder="admin">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Contraseña:</label>
+                        <input type="password" id="password" class="form-control mb-2" placeholder="*****">
+                    </div>
+                </div>
+                <button onclick="obtenerToken()" class="btn btn-primary mt-2">Obtener Token</button>
+                <button onclick="limpiarToken()" class="btn btn-secondary mt-2">Limpiar Token</button>
+                <div class="mt-3">
+                    <small class="text-muted">Token actual:</small>
+                    <div id="token-display" class="response-box mt-2" style="max-height: 100px;">
+                        No hay token almacenado
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Autores -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">2. Gestión de Autores</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group mb-3" role="group">
+                    <button onclick="listarAutores()" class="btn btn-outline-success">GET - Listar Autores</button>
+                    <button onclick="crearAutor()" class="btn btn-outline-success">POST - Crear Autor</button>
+                    <button onclick="obtenerAutor()" class="btn btn-outline-success">GET - Obtener Autor</button>
+                    <button onclick="actualizarAutor()" class="btn btn-outline-warning">PUT - Actualizar Autor</button>
+                    <button onclick="eliminarAutor()" class="btn btn-outline-danger">DELETE - Eliminar Autor</button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Datos para Crear/Actualizar:</h6>
+                        <input type="number" id="autor-id" class="form-control mb-2" placeholder="ID (para GET/PUT/DELETE)">
+                        <input type="text" id="autor-nombre" class="form-control mb-2" placeholder="Nombre">
+                        <input type="text" id="autor-apellido" class="form-control mb-2" placeholder="Apellido">
+                        <textarea id="autor-biografia" class="form-control mb-2" placeholder="Biografía" rows="3"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Respuesta:</h6>
+                        <div id="autor-response" class="response-box">
+                            Esperando solicitud...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Libros -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">3. Gestión de Libros</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group mb-3" role="group">
+                    <button onclick="listarLibros()" class="btn btn-outline-info">GET - Listar Libros</button>
+                    <button onclick="crearLibro()" class="btn btn-outline-info">POST - Crear Libro</button>
+                    <button onclick="obtenerLibro()" class="btn btn-outline-info">GET - Obtener Libro</button>
+                    <button onclick="actualizarLibro()" class="btn btn-outline-warning">PUT - Actualizar Libro</button>
+                    <button onclick="eliminarLibro()" class="btn btn-outline-danger">DELETE - Eliminar Libro</button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Datos para Crear/Actualizar:</h6>
+                        <input type="number" id="libro-id" class="form-control mb-2" placeholder="ID (para GET/PUT/DELETE)">
+                        <input type="text" id="libro-titulo" class="form-control mb-2" placeholder="Título">
+                        <input type="number" id="libro-ano" class="form-control mb-2" placeholder="Año de Publicación">
+                        <input type="number" id="libro-autor-id" class="form-control mb-2" placeholder="ID del Autor">
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Respuesta:</h6>
+                        <div id="libro-response" class="response-box">
+                            Esperando solicitud...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Almacenamiento del token
+        let accessToken = null;
+
+        // ========================================
+        // FUNCIÓN DE AUTENTICACIÓN
+        // ========================================
+        async function obtenerToken() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                mostrarToken('Error: Ingrese usuario y contraseña', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/token/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    accessToken = data.access;
+                    mostrarToken(`✓ Token obtenido exitosamente:\n${accessToken}`, 'success');
+                } else {
+                    mostrarToken(`✗ Error: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                mostrarToken(`✗ Error de red: ${error.message}`, 'error');
+            }
+        }
+
+        function limpiarToken() {
+            accessToken = null;
+            mostrarToken('Token eliminado', 'error');
+        }
+
+        function mostrarToken(mensaje, tipo) {
+            const display = document.getElementById('token-display');
+            display.textContent = mensaje;
+            display.className = `response-box mt-2 ${tipo}`;
+        }
+
+        // ========================================
+        // FUNCIONES AUXILIARES
+        // ========================================
+        function getHeaders() {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+            }
+            return headers;
+        }
+
+        function mostrarRespuesta(elementId, data, status) {
+            const element = document.getElementById(elementId);
+            const clase = status >= 200 && status < 300 ? 'success' : 'error';
+            element.textContent = `Status: ${status}\n\n${JSON.stringify(data, null, 2)}`;
+            element.className = `response-box ${clase}`;
+        }
+
+        // ========================================
+        // FUNCIONES PARA AUTORES
+        // ========================================
+        async function listarAutores() {
+            try {
+                const response = await fetch('/api/autores/', {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                mostrarRespuesta('autor-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('autor-response', { error: error.message }, 500);
+            }
+        }
+
+        async function crearAutor() {
+            const autor = {
+                nombre: document.getElementById('autor-nombre').value,
+                apellido: document.getElementById('autor-apellido').value,
+                biografia: document.getElementById('autor-biografia').value
+            };
+
+            try {
+                const response = await fetch('/api/autores/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(autor)
+                });
+                const data = await response.json();
+                mostrarRespuesta('autor-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('autor-response', { error: error.message }, 500);
+            }
+        }
+
+        async function obtenerAutor() {
+            const id = document.getElementById('autor-id').value;
+            if (!id) {
+                mostrarRespuesta('autor-response', { error: 'Ingrese un ID' }, 400);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/autores/${id}/`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                mostrarRespuesta('autor-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('autor-response', { error: error.message }, 500);
+            }
+        }
+
+        async function actualizarAutor() {
+            const id = document.getElementById('autor-id').value;
+            if (!id) {
+                mostrarRespuesta('autor-response', { error: 'Ingrese un ID' }, 400);
+                return;
+            }
+
+            const autor = {
+                nombre: document.getElementById('autor-nombre').value,
+                apellido: document.getElementById('autor-apellido').value,
+                biografia: document.getElementById('autor-biografia').value
+            };
+
+            try {
+                const response = await fetch(`/api/autores/${id}/`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(autor)
+                });
+                const data = await response.json();
+                mostrarRespuesta('autor-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('autor-response', { error: error.message }, 500);
+            }
+        }
+
+        async function eliminarAutor() {
+            const id = document.getElementById('autor-id').value;
+            if (!id) {
+                mostrarRespuesta('autor-response', { error: 'Ingrese un ID' }, 400);
+                return;
+            }
+
+            if (!confirm('¿Está seguro de eliminar este autor?')) return;
+
+            try {
+                const response = await fetch(`/api/autores/${id}/`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                
+                if (response.status === 204) {
+                    mostrarRespuesta('autor-response', { mensaje: 'Autor eliminado exitosamente' }, 204);
+                } else {
+                    const data = await response.json();
+                    mostrarRespuesta('autor-response', data, response.status);
+                }
+            } catch (error) {
+                mostrarRespuesta('autor-response', { error: error.message }, 500);
+            }
+        }
+
+        // ========================================
+        // FUNCIONES PARA LIBROS
+        // ========================================
+        async function listarLibros() {
+            try {
+                const response = await fetch('/api/libros/', {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                mostrarRespuesta('libro-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('libro-response', { error: error.message }, 500);
+            }
+        }
+
+        async function crearLibro() {
+            const libro = {
+                titulo: document.getElementById('libro-titulo').value,
+                ano_publicacion: parseInt(document.getElementById('libro-ano').value),
+                autor: parseInt(document.getElementById('libro-autor-id').value)
+            };
+
+            try {
+                const response = await fetch('/api/libros/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(libro)
+                });
+                const data = await response.json();
+                mostrarRespuesta('libro-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('libro-response', { error: error.message }, 500);
+            }
+        }
+
+        async function obtenerLibro() {
+            const id = document.getElementById('libro-id').value;
+            if (!id) {
+                mostrarRespuesta('libro-response', { error: 'Ingrese un ID' }, 400);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/libros/${id}/`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                mostrarRespuesta('libro-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('libro-response', { error: error.message }, 500);
+            }
+        }
+
+        async function actualizarLibro() {
+            const id = document.getElementById('libro-id').value;
+            if (!id) {
+                mostrarRespuesta('libro-response', { error: 'Ingrese un ID' }, 400);
+                return;
+            }
+
+            const libro = {
+                titulo: document.getElementById('libro-titulo').value,
+                ano_publicacion: parseInt(document.getElementById('libro-ano').value),
+                autor: parseInt(document.getElementById('libro-autor-id').value)
+            };
+
+            try {
+                const response = await fetch(`/api/libros/${id}/`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(libro)
+                });
+                const data = await response.json();
+                mostrarRespuesta('libro-response', data, response.status);
+            } catch (error) {
+                mostrarRespuesta('libro-response', { error: error.message }, 500);
+            }
+        }
+
+        async function eliminarLibro() {
+            const id = document.getElementById('libro-id').value;
+            if (!id) {
+                mostrarRespuesta('libro-response', { error: 'Ingrese un ID' }, 400);
+                return;
+            }
+
+            if (!confirm('¿Está seguro de eliminar este libro?')) return;
+
+            try {
+                const response = await fetch(`/api/libros/${id}/`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                
+                if (response.status === 204) {
+                    mostrarRespuesta('libro-response', { mensaje: 'Libro eliminado exitosamente' }, 204);
+                } else {
+                    const data = await response.json();
+                    mostrarRespuesta('libro-response', data, response.status);
+                }
+            } catch (error) {
+                mostrarRespuesta('libro-response', { error: error.message }, 500);
+            }
+        }
+    </script>
+</body>
+</html>
